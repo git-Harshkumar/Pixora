@@ -19,7 +19,7 @@ const httpServer = createServer(app)
 // ── Socket.IO ──────────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CLIENT_ORIGIN,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -29,7 +29,7 @@ initSocket(io)
 // ── Global Middleware ──────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CLIENT_ORIGIN,
     credentials: true,
   })
 )
@@ -63,9 +63,9 @@ app.use((err, req, res, next) => {
 })
 
 // ── Start Server ───────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT
 httpServer.listen(PORT, () => {
   console.log(`\n Pixora server running on http://localhost:${PORT}`)
   console.log(` Socket.IO ready`)
   console.log(` Environment: ${process.env.NODE_ENV || 'development'}\n`)
-})
+}) 
