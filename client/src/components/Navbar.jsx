@@ -77,14 +77,7 @@ const Navbar = () => {
             <Avatar src={user?.avatar} username={user?.username} size="sm" />
           </Link>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-xl text-gray-400 hover:text-red-400 hover:bg-surface-elevated transition-all"
-            title="Logout"
-          >
-            <LogOut size={20} />
-          </button>
+          
         </div>
       </div>
 

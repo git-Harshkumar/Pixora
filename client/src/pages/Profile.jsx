@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Grid, Settings, Loader2, X, Check, Trash2 } from 'lucide-react'
+import { Grid, Settings, Loader2, X, Check, Trash2,LogOut } from 'lucide-react'
 import api from '../lib/api'
 import Navbar from '../components/Navbar'
 import Avatar from '../components/Avatar'
@@ -11,6 +11,7 @@ import { usePostStore } from '../store/postStore'
 import toast from 'react-hot-toast'
 
 const Profile = () => {
+  const { user, logout } = useAuthStore()
   const { username } = useParams()
   const { user: currentUser, updateProfile } = useAuthStore()
   const { fetchFeed } = usePostStore()
@@ -44,6 +45,11 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile()
   }, [username])
+
+   const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   const openList = async (type) => {
     setListType(type)
@@ -245,11 +251,23 @@ const Profile = () => {
                   className="input resize-none"
                 />
               </div>
+
+              {/* ...... */}
+             
               <button type="submit" disabled={saving} className="btn-primary w-full">
                 {saving ? <Loader2 size={16} className="animate-spin mx-auto" /> : (
                   <span className="flex items-center justify-center gap-1.5"><Check size={15} /> Save Changes</span>
                 )}
               </button>
+               <div className="w-full flex justify-center mt-4">
+  <button
+    onClick={handleLogout}
+    className="flex items-center gap-2 px-4 py-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-surface-elevated transition-all"
+  >
+    <LogOut size={20} />
+    Logout
+  </button>
+</div>   
             </form>
           </div>
         </div>
