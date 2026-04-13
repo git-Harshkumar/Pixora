@@ -58,6 +58,23 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.id
 
+    // Only show conversations with users that have a follow relation
+    // (either you follow them or they follow you)
+    const [followingRows, followerRows] = await Promise.all([
+      prisma.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true },
+      }),
+      prisma.follow.findMany({
+        where: { followingId: userId },
+        select: { followerId: true },
+      }),
+    ])
+    const allowedUserIds = new Set([
+      ...followingRows.map((r) => r.followingId),
+      ...followerRows.map((r) => r.followerId),
+    ])
+
     // Find all unique conversations
     const rawMessages = await prisma.message.findMany({
       where: {
@@ -69,6 +86,8 @@ router.get('/', authenticate, async (req, res) => {
         text: true,
         createdAt: true,
         read: true,
+        senderId: true,
+        receiverId: true,
         sender: { select: { id: true, username: true, avatar: true } },
         receiver: { select: { id: true, username: true, avatar: true } },
       },
@@ -79,6 +98,13 @@ router.get('/', authenticate, async (req, res) => {
     for (const msg of rawMessages) {
       const other = msg.senderId === userId ? msg.receiver : msg.sender
       const otherId = other.id
+
+      // Guard: never create a "conversation with myself"
+      if (otherId === userId) continue
+
+      // Only keep conversations with allowed users (follow relation)
+      if (!allowedUserIds.has(otherId)) continue
+
       if (!conversationMap.has(otherId)) {
         conversationMap.set(otherId, {
           user: other,

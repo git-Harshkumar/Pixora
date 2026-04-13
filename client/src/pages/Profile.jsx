@@ -7,11 +7,13 @@ import Avatar from '../components/Avatar'
 import FollowButton from '../components/FollowButton'
 import PostGrid from '../components/PostGrid'
 import { useAuthStore } from '../store/authStore'
+import { usePostStore } from '../store/postStore'
 import toast from 'react-hot-toast'
 
 const Profile = () => {
   const { username } = useParams()
   const { user: currentUser, updateProfile } = useAuthStore()
+  const { fetchFeed } = usePostStore()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
@@ -19,6 +21,10 @@ const Profile = () => {
   const [avatarFile, setAvatarFile] = useState(null)
   const [removeAvatar, setRemoveAvatar] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [listOpen, setListOpen] = useState(false)
+  const [listType, setListType] = useState('followers') // 'followers' | 'following'
+  const [listLoading, setListLoading] = useState(false)
+  const [listUsers, setListUsers] = useState([])
 
   const isOwn = currentUser?.username === username
 
@@ -38,6 +44,22 @@ const Profile = () => {
   useEffect(() => {
     fetchProfile()
   }, [username])
+
+  const openList = async (type) => {
+    setListType(type)
+    setListOpen(true)
+    setListLoading(true)
+    try {
+      const { data } = await api.get(`/users/${username}/${type}`)
+      const users = type === 'followers' ? data.data.followers : data.data.following
+      setListUsers(users || [])
+    } catch {
+      setListUsers([])
+      toast.error('Could not load list')
+    } finally {
+      setListLoading(false)
+    }
+  }
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
@@ -105,7 +127,11 @@ const Profile = () => {
                     <Settings size={13} /> Edit Profile
                   </button>
                 ) : (
-                  <FollowButton userId={profile.id} />
+                  <FollowButton
+                    userId={profile.id}
+                    initialFollowing={!!profile.isFollowing}
+                    onToggle={() => fetchFeed(true)}
+                  />
                 )}
                 {!isOwn && (
                   <Link
@@ -120,8 +146,16 @@ const Profile = () => {
               {/* Stats */}
               <div className="flex gap-6 mb-3">
                 <Stat label="posts" value={profile._count.posts} />
-                <Stat label="followers" value={profile._count.followers} />
-                <Stat label="following" value={profile._count.following} />
+                <Stat
+                  label="followers"
+                  value={profile._count.followers}
+                  onClick={() => openList('followers')}
+                />
+                <Stat
+                  label="following"
+                  value={profile._count.following}
+                  onClick={() => openList('following')}
+                />
               </div>
 
               {profile.bio && (
@@ -220,15 +254,74 @@ const Profile = () => {
           </div>
         </div>
       )}
+
+      {/* Followers / Following Modal */}
+      {listOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setListOpen(false)
+          }}
+        >
+          <div className="card w-full max-w-sm mx-4 overflow-hidden animate-slide-up">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-surface-border">
+              <h2 className="font-semibold text-white capitalize">{listType}</h2>
+              <button
+                onClick={() => setListOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-surface-elevated transition-all"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto">
+              {listLoading ? (
+                <div className="p-6 flex justify-center">
+                  <Loader2 size={22} className="animate-spin text-brand-500" />
+                </div>
+              ) : listUsers.length === 0 ? (
+                <div className="p-6 text-center text-gray-500 text-sm">
+                  No {listType} yet.
+                </div>
+              ) : (
+                <div className="p-2">
+                  {listUsers.map((u) => (
+                    <Link
+                      key={u.id}
+                      to={`/profile/${u.username}`}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-elevated transition-colors"
+                      onClick={() => setListOpen(false)}
+                    >
+                      <Avatar src={u.avatar} username={u.username} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white truncate">{u.username}</p>
+                        {u.bio && <p className="text-xs text-gray-500 truncate">{u.bio}</p>}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {u._count?.followers ?? 0}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
 
-const Stat = ({ label, value }) => (
-  <div className="text-center">
+const Stat = ({ label, value, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={!onClick}
+    className={`text-center ${onClick ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+  >
     <p className="font-bold text-white text-base">{value}</p>
     <p className="text-xs text-gray-500">{label}</p>
-  </div>
+  </button>
 )
 
 export default Profile

@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
+import { useSocketStore } from './store/socketStore'
+import { useChatStore } from './store/chatStore'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -27,6 +29,21 @@ const PublicOnly = ({ children }) => {
 }
 
 const App = () => {
+  const { user, token } = useAuthStore()
+  const { connect, disconnect } = useSocketStore()
+  const { receiveMessage, setCurrentUserId } = useChatStore()
+
+  // Keep socket connected for the whole app session (not only ChatThread),
+  // so real-time events like follow requests can arrive anywhere.
+  useEffect(() => {
+    if (user?.id) setCurrentUserId(user.id)
+  }, [user?.id, setCurrentUserId])
+
+  useEffect(() => {
+    if (token) connect(token, receiveMessage, null)
+    return () => disconnect()
+  }, [token, connect, disconnect, receiveMessage])
+
   return (
     <BrowserRouter>
       <Toaster

@@ -4,28 +4,18 @@ import Navbar from '../components/Navbar'
 import ChatSidebar from '../components/ChatSidebar'
 import ChatWindow from '../components/ChatWindow'
 import { useChatStore } from '../store/chatStore'
-import { useSocketStore } from '../store/socketStore'
 import { useAuthStore } from '../store/authStore'
 import api from '../lib/api'
 
 const ChatThread = () => {
   const { userId } = useParams()
-  const { user, token } = useAuthStore()
-  const { receiveMessage, setCurrentUserId } = useChatStore()
-  const { connect, disconnect } = useSocketStore()
+  const { user } = useAuthStore()
+  const { setCurrentUserId } = useChatStore()
   const [otherUser, setOtherUser] = useState(null)
 
   useEffect(() => {
     if (user) setCurrentUserId(user.id)
   }, [user])
-
-  // Connect socket on mount
-  useEffect(() => {
-    if (token) {
-      connect(token, receiveMessage, null)
-    }
-    return () => disconnect()
-  }, [token])
 
   // Fetch other user info
   useEffect(() => {
